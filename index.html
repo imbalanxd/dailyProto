@@ -10,7 +10,11 @@
   </head>
   <body>
     <div>
-    <canvas id="myCanvas" width="600" height="160"></canvas>
+    <canvas id="myCanvas" width="600" height="160"></canvas><div><label for="movie">max amount (blank = auto)</label></div><div><textarea id="max" rows="1" cols="20">
+</textarea></div>
+  </div>
+  <div>
+    <canvas id="myCanvas2" width="600" height="160"></canvas>
   </div>
     <div>
       <div><label for="movie">Transactions (comma seperated format: day amount,) : </label></div>
@@ -36,9 +40,9 @@ updateButton.addEventListener('click', function()
 {
     update();
 });
-
+var data;
 function processData() {
-            var data = document.getElementById('data').value.split(",");
+            data = document.getElementById('data').value.split(",");
             var delayPeriod = parseInt(input.value);
             pts = new Array(60);
             maxVal = 0;
@@ -51,7 +55,6 @@ function processData() {
                     pts[j] = 0;
                 }
             }
-              console.log(delayPeriod);
             for(var i = 0; i < data.length; i++) {
               var pair = data[i].trim().split(" ");
               var actual = pair[0] * 2;
@@ -69,7 +72,14 @@ function processData() {
                     maxVal = pts[j+1];
               }
             }
-              // console.log(pts);
+            if(document.getElementById('max').value.length > 0)
+              maxVal = parseFloat(document.getElementById('max').value);
+            else {
+              maxVal = maxVal/0.8;
+              // document.getElementById('max').value = maxVal;
+            }
+            console.log(maxVal);
+
             for(var j = 0; j < 60; j+=2) {
                   pts[j + 1] = (graphHeight + graphHeightPad) - (pts[j + 1]/maxVal * graphHeight);
               }
@@ -78,15 +88,51 @@ function processData() {
 
           function update() {
             // $("tensionvalue").innerHTML="("+$("tension").value+")";
+            ctx = canvas.getContext('2d');
             ctx.restore();
             processData();
             drawSplines();
+
+            ctx = canvas2.getContext('2d');
+            drawValueGraph();
           }
+
+          function drawValueGraph() {
+            var maxValBar = 0;
+            ctx.fillStyle = "#E8F6FF";
+            ctx.fillRect(0, 0, canvas2.width, canvas2.height);
+            ctx.fillStyle = "#8ED6FF";
+            var blockWidth = graphWidth/30.0 * 0.5;
+            var padding = (graphWidth/30.0 - blockWidth)/2.0;
+
+            var entries = [];
+                    
+            for(var i = 0; i < pts.length; i+=2) {
+              var dayValue = 0;
+              for(var k = 0; k < data.length; k++) {
+                  var pair = data[k].trim().split(" ");
+                  if(parseInt(pair[0]) == i/2) {
+                    dayValue += parseInt(pair[1]);//(graphHeight + graphHeightPad) - (parseInt(pair[1])/maxVal * graphHeight);
+                  }
+              }
+              if(maxValBar < dayValue)
+                maxValBar = dayValue;
+              if(dayValue != 0) {
+                entries[i/2] = dayValue;
+              }
+            }
+            for(var key in entries) {
+              var val= entries[key]/(maxValBar/0.8) * graphHeight;
+                ctx.fillRect(graphWidth/30.0 * parseInt(key)/1 + padding, graphHeight + graphHeightPad - val, blockWidth, val);
+            }
+          }
+
           // $("showPoints").onchange = $("showControlLines").onchange = $("tension").onchange = update;
       
           // utility function
           // function $(id){ return document.getElementById(id); }
           var canvas=document.getElementById('myCanvas');
+          var canvas2=document.getElementById('myCanvas2');
           var ctx = canvas.getContext('2d');
           ctx.save();
           var tension = 0.25;
@@ -168,9 +214,9 @@ function processData() {
                                       pts[2*i+4], pts[2*i+5]));
             }
             // if ($("showControlLines").checked) drawControlPoints(cps);
-            drawPoints(pts);
             ctx.fillStyle = "#E8F6FF";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawPoints(pts);
             drawCurvedPath(cps, pts);
  
           }
@@ -235,6 +281,7 @@ function processData() {
             if (fillStyle) {
               ctx.fillStyle = fillStyle;
             }
+              ctx.fillStyle = '#6AA6DD';
             ctx.arc(x, y, 2, 0, 2*Math.PI);
             ctx.fill();
             ctx.restore();
